@@ -28,8 +28,7 @@ class Problem:
                 for connection in line[1:]:
                     sconnection = connection.split(",")
                     self.connections[sconnection[0]].append(sconnection[1])
-                    self.connections[sconnection[1]].append(sconnection[2])
-                    # self.connections.append((sconnection[0],sconnection[1]))
+                    self.connections[sconnection[1]].append(sconnection[0])
             elif line[0] == "S":
                 for sensor in line[1:]:
                     ssensor = sensor.split(":")
@@ -51,7 +50,7 @@ class Problem:
             if measure_instant == self.measures[0]:
                 # Iterate every room
                 for room in self.rooms:
-                    node = BayesNode(room + "_" + str(instant), "", 1)
+                    node = BayesNode(room + "_" + str(instant), "", 0.5)
                     self.BNet.add(node)
                     # Add all sensors
                     for sensor, sensor_data in self.sensors[room].items():
