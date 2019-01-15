@@ -1,9 +1,12 @@
 import sys
 
-sys.path.insert(0, "/Users/mikebrgs/CurrentWork/tecnico/iasd/proj3/data")
-sys.path.insert(1, "/Users/mikebrgs/CurrentWork/tecnico/iasd/proj3/ext/aima-python")
+#sys.path.insert(0, "/Users/mikebrgs/CurrentWork/tecnico/iasd/proj3/data")
+#sys.path.insert(1, "/Users/mikebrgs/CurrentWork/tecnico/iasd/proj3/ext/aima-python")
 
-import probability
+sys.path.insert(0, "../../aima-code")
+#sys.path.insert(0, "\Users\loure\Dropbox\Lourenço\Faculdade\5A1S\IASD\bayes\data")
+
+#import probability
 
 from probability import BayesNode, BayesNet, elimination_ask
 
@@ -14,6 +17,7 @@ class Problem:
         self.connections = dict()
         self.sensors = dict()
         self.measures = list()
+        # Parse input file
         for line in fh:
             line = line.replace("\n","").split(" ")
             if line[0] == "R":
@@ -44,54 +48,54 @@ class Problem:
                     elif smeasure[1] == "F":
                         self.measures[-1].append((smeasure[0],False))
         instant = 0
+        # Build Bayesian Network
+        # Iterate time instants
         for measure_instant in self.measures:
             instant += 1
             node = None
             if measure_instant == self.measures[0]:
                 # Iterate every room
                 for room in self.rooms:
-                    node = BayesNode(room + "_" + str(instant), "", 0.5)
+                    node = (room + "_" + str(instant), '', 0.5)
                     self.BNet.add(node)
                     # Add all sensors
-                    for sensor, sensor_data in self.sensors[room].items():
+                    for sensor_data in self.sensors[room]:
                         sensor_dict = dict()
                         sensor_dict[True] = sensor_data[1]
                         sensor_dict[False] = sensor_data[2]
-                        node = BayesNode(sensor + "_" + str(instant), room + "_" + str(instant), sensor_dict)
+                        node = (sensor_data[0] + "_" + str(instant), room + "_" + str(instant), sensor_dict)
                         self.BNet.add(node)
             else:
                 # Iterate every room
                 for room in self.rooms:
-                    parents = room + "_" + str(instant)
+                    parents = room + "_" + str(instant - 1)
                     probabilities = dict()
                     for neighbour in self.connections[room]:
                         parents += " " + neighbour + "_" + str(instant - 1)
-                    for counter in range(0, 2**(len(self.connections) + 1)):
-                        bin_counter = format(counter,'0' + str(len(self.connections) + 1) + 'b')
-                        domain = tuple()
-                        for index in range(0, len(self.connections) + 1):
-                            if bin_counter[index] == 0:
-                                domain += False
+                    for counter in range(0, 2**(len(self.connections[room]) + 1)):
+                        bin_counter = format(counter,'0' + str(len(self.connections[room]) + 1) + 'b')
+                        domain = list()
+                        for index in range(0, len(self.connections[room]) + 1):
+                            if bin_counter[index] == '0':
+                                domain.append(False)
                             else:
-                                domain += True
+                                domain.append(True)
                         if domain[0] == True:
-                            probabilities[domain] = 1
+                            probabilities[tuple(domain)] = 1
                         elif True in domain:
-                            probabilities[domain] = self.PropagationLaw
+                            probabilities[tuple(domain)] = self.PropagationLaw
                         else:
-                            probabilities[domain] = 0
-                    node = BayesNode(room + "_" + str(instant), parents, probabilities)
+                            probabilities[tuple(domain)] = 0
+                    node = (room + "_" + str(instant), parents, probabilities)
                     self.BNet.add(node)
                     # Add all sensors
-                    for sensor, sensor_data in self.sensors[room].items():
+                    for sensor_data in self.sensors[room]:
                         sensor_dict = dict()
                         sensor_dict[True] = sensor_data[1]
                         sensor_dict[False] = sensor_data[2]
-                        node = BayesNode(sensor + "_" + str(instant), room + "_" + str(instant), sensor_dict)
+                        node = (sensor_data[0] + "_" + str(instant), room + "_" + str(instant), sensor_dict)
                         self.BNet.add(node)
-        # Place here your code to load problem from opened file object fh
-        # and use probability.BayesNet() to create the Bayesian network
-        pass
+        #print("\n Loaded Bayesian Network:\n\n" + str(self.BNet) + "\n")
 
     def solve(self):
         instant = 0
@@ -103,17 +107,15 @@ class Problem:
             for measure in measure_instant:
                 e[measure[0] + "_" + str(instant)] = measure[1]
         for room in self.rooms:
-            p = elimination_ask(room + "_" + len(self.measures),e,self.BNet)
-            if p >= p_max:
-                p_max = p
+            query = room + "_" + str(len(self.measures))
+            p = elimination_ask(query, e, self.BNet)
+            if p[True] >= p_max:
+                p_max = p[True]
                 r_max = room
-        # Place here your code to determine the maximum likelihood solution
-        # returning the solution room name and likelihood
-        # use probability.elimination_ask() to perform probabilistic inference
         return (r_max, p_max)
 
 def solver(input_file):
     return Problem(input_file).solve()
 
-fp = open("/Users/mikebrgs/CurrentWork/tecnico/iasd/proj3/data/data1.txt","r")
-Problem(fp)
+fp = open("../data/data1.txt","r")
+print(solver(fp))
